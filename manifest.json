@@ -1,0 +1,10 @@
+{
+  "name": "MyAnki",
+  "short_name": "MyAnki",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#2563eb",
+  "lang": "ja"
+}
