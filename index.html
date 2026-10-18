@@ -7,9 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="MyAnki">
+<meta name="apple-mobile-web-app-title" content="MyFlashcards">
 <link rel="manifest" href="manifest.json">
-<title>MyAnki</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>MyFlashcards</title>
 <style>
   :root {
     --bg: #f4f5f7;
@@ -22,6 +23,8 @@
     --hard: #d97706;
     --good: #16a34a;
     --easy: #2563eb;
+    --young: #4ade80;
+    --mature: #15803d;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -157,6 +160,23 @@
     text-align: center;
     color: var(--muted);
   }
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--hard);
+    border-radius: 12px;
+    background: var(--card);
+    font-size: 15px;
+  }
+  .banner button {
+    padding: 8px 14px;
+    font-size: 15px;
+  }
   .deck-item {
     display: flex;
     justify-content: space-between;
@@ -198,6 +218,10 @@
   }
   .counts.small { padding: 8px; }
   .counts.small span { font-size: 20px; }
+  .counts .current span {
+    text-decoration: underline;
+    text-underline-offset: 6px;
+  }
   .panel {
     padding: 4px 16px;
     border: 1px solid var(--border);
@@ -257,6 +281,10 @@
     max-width: 100%;
     height: auto;
   }
+  .cloze {
+    color: var(--accent);
+    font-weight: 700;
+  }
   .answers {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -289,23 +317,115 @@
     margin: 24px 0 8px;
     font-size: 16px;
   }
+  .stat-table {
+    width: 100%;
+    margin: 8px 0;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+  .stat-table th,
+  .stat-table td {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-table tr:last-child th,
+  .stat-table tr:last-child td {
+    border-bottom: none;
+  }
+  .stat-table th {
+    color: var(--muted);
+    font-weight: 400;
+    text-align: left;
+  }
+  .stat-table td { text-align: right; }
+  .hbar {
+    display: flex;
+    height: 16px;
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--border);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+  }
+  .legend .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    border-radius: 2px;
+  }
+  .legend b {
+    margin-left: 6px;
+    font-weight: 600;
+  }
+  .chart { margin: 12px 0; }
+  .chart-max {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 160px;
+    border-bottom: 1px solid var(--border);
+  }
+  .bar {
+    display: flex;
+    flex: 1;
+    flex-direction: column-reverse;
+    min-width: 0;
+    height: 100%;
+    cursor: pointer;
+  }
+  .bar .seg { width: 100%; }
+  .bar.sel .seg { opacity: 0.55; }
+  .axis {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .axis span {
+    flex: 1;
+    min-width: 0;
+    overflow: visible;
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .tip { margin: 8px 0 0; }
 </style>
 </head>
 <body>
 <header class="topbar">
   <button id="btn-back" class="icon">‹ 戻る</button>
-  <h1 id="title">MyAnki</h1>
+  <h1 id="title">MyFlashcards</h1>
   <button id="btn-settings" class="icon">設定</button>
 </header>
 
 <main>
   <section id="view-decks">
+    <div id="backup-banner" class="banner" hidden>
+      <span id="backup-banner-text"></span>
+      <button id="btn-banner-export" class="primary">今すぐ書き出し</button>
+    </div>
     <div class="row">
       <input id="new-deck-name" placeholder="新しいデッキ名">
       <button id="btn-add-deck" class="primary">追加</button>
     </div>
     <p class="muted">数字の色：<span class="c-new">新規</span> / <span class="c-learn">学習中</span> / <span class="c-rev">復習</span></p>
     <ul id="deck-list" class="list"></ul>
+    <div class="row">
+      <button id="btn-stats-all">全体の統計</button>
+    </div>
   </section>
 
   <section id="view-deck" hidden>
@@ -315,6 +435,7 @@
       <button id="btn-add-card">カード追加</button>
       <button id="btn-list">カード一覧</button>
       <button id="btn-import">インポート</button>
+      <button id="btn-deck-stats">統計</button>
       <button id="btn-deck-opt">デッキ設定</button>
     </div>
     <div id="deck-opt" class="panel" hidden>
@@ -329,8 +450,19 @@
   </section>
 
   <section id="view-edit" hidden>
-    <label>表面<textarea id="edit-front" rows="4"></textarea></label>
-    <label>裏面<textarea id="edit-back" rows="4"></textarea></label>
+    <label>ノートの種類
+      <select id="edit-type">
+        <option value="basic">基本（表面・裏面）</option>
+        <option value="cloze">穴埋め</option>
+      </select>
+    </label>
+    <label><span id="edit-front-label">表面</span><textarea id="edit-front" rows="4"></textarea></label>
+    <div id="cloze-tools" class="row" hidden>
+      <button id="btn-cloze-new" type="button">穴埋め（新しい番号）</button>
+      <button id="btn-cloze-same" type="button">穴埋め（同じ番号）</button>
+    </div>
+    <p id="cloze-help" class="muted" hidden>隠したい部分を選択してボタンを押すか、{{c1::答え}} の形式で入力します。{{c1::答え::ヒント}} とすると、問題にヒントを表示します。番号ごとに1枚のカードが作られ、同じ番号の部分は同じカードで隠されます。</p>
+    <label><span id="edit-back-label">裏面</span><textarea id="edit-back" rows="4"></textarea></label>
     <div class="row">
       <button id="btn-save-card" class="primary">追加</button>
       <button id="btn-reset-card" hidden>学習状況をリセット</button>
@@ -345,12 +477,19 @@
   </section>
 
   <section id="view-import" hidden>
-    <p class="muted">1行につき1枚で、「表面 区切り文字 裏面」の形式です。#で始まる行は無視されます。パソコン版Ankiの「ノートをプレーンテキストで書き出し」したファイルも読み込めます。</p>
+    <p class="muted">1行につき1件で、「表面 区切り文字 裏面」の形式です。穴埋めの場合は「テキスト 区切り文字 追加情報」です。#で始まる行は無視されます。パソコン版Ankiの「ノートをプレーンテキストで書き出し」したファイルも読み込めます。</p>
     <label>区切り文字
       <select id="import-sep">
         <option value="tab">タブ</option>
         <option value="comma">カンマ</option>
         <option value="semicolon">セミコロン</option>
+      </select>
+    </label>
+    <label>ノートの種類
+      <select id="import-type">
+        <option value="auto">自動判定（{{c1::…}} を含む行は穴埋め）</option>
+        <option value="basic">基本</option>
+        <option value="cloze">穴埋め</option>
       </select>
     </label>
     <label>ファイルを選択<input id="import-file" type="file" accept=".txt,.tsv,.csv,text/plain,text/csv"></label>
@@ -392,6 +531,27 @@
     </div>
   </section>
 
+  <section id="view-stats" hidden>
+    <h2>今日</h2>
+    <div id="stats-today" class="panel"></div>
+    <h2>カードの内訳</h2>
+    <div id="stats-cards" class="panel"></div>
+    <label>グラフの期間
+      <select id="stats-period">
+        <option value="7">1週間</option>
+        <option value="30" selected>1か月</option>
+        <option value="90">3か月</option>
+      </select>
+    </label>
+    <h2>今後の復習予定</h2>
+    <div id="stats-forecast" class="panel"></div>
+    <h2>学習履歴</h2>
+    <div id="stats-history" class="panel"></div>
+    <h2>正答率（復習カード）</h2>
+    <div id="stats-retention" class="panel"></div>
+    <p class="muted">学習履歴と正答率は、バージョン1.3以降の回答から記録されます。</p>
+  </section>
+
   <section id="view-settings" hidden>
     <label class="check"><input id="set-html" type="checkbox">カード内のHTMLを解釈する（Ankiから書き出したデータ向け）</label>
     <label>読み上げ言語
@@ -411,6 +571,7 @@
     <div class="row">
       <button id="btn-export" class="primary">全データを書き出し（JSON）</button>
     </div>
+    <p id="backup-info" class="muted"></p>
     <label>JSONファイルから復元（現在のデータは置き換えられます）<input id="restore-file" type="file" accept=".json,application/json"></label>
     <p id="storage-info" class="muted"></p>
   </section>
@@ -420,45 +581,100 @@
 (() => {
   'use strict';
 
-  const STORE_KEY = 'myanki-data-v1';
+  const APP_NAME = 'MyFlashcards';
+  const APP_VERSION = '1.3';
+  const STORE_KEY = 'myflashcards-data-v1';
+  const LEGACY_KEYS = ['myanki-data-v1'];
   const MIN = 60 * 1000;
   const HOUR = 60 * MIN;
   const DAY = 24 * HOUR;
   const LEARN_STEPS = [1, 10];
   const RELEARN_STEPS = [10];
+  const GRADUATING_IVL = 1;
+  const EASY_IVL = 4;
+  const HARD_FACTOR = 1.2;
+  const EASY_BONUS = 1.3;
+  const MAX_IVL = 36500;
   const LEARN_AHEAD = 20 * MIN;
   const ROLLOVER_HOUR = 4;
   const LIST_LIMIT = 500;
+  const BACKUP_REMIND_DAYS = 7;
+  const MATURE_IVL = 21;
+  const MAX_ANSWER_MS = 60 * 1000;
+  const KIND = { new: 0, learning: 1, review: 2, relearning: 3 };
+  const KIND_LABELS = ['新規', '学習中', '復習', '再学習'];
+  const KIND_COLORS = ['var(--easy)', 'var(--hard)', 'var(--good)', 'var(--again)'];
+  const CLOZE_RE = /\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g;
 
   const $ = (id) => document.getElementById(id);
 
   let db = load();
   let currentDeckId = null;
   let editingCardId = null;
+  let statsDeckId = null;
   let orderSeq = 0;
-  const session = { card: null, shown: false, undo: null };
+  const session = { card: null, shown: false, undo: null, resumeShown: false, shownAt: 0 };
 
   // ---------- データ保存 ----------
 
+  function normalize(data) {
+    data.settings = data.settings || {};
+    if (!Array.isArray(data.revlog)) data.revlog = [];
+    return data;
+  }
+
+  // 新しいキーを優先し、なければ旧名（MyAnki）のキーから読み込む
   function load() {
-    try {
-      const data = JSON.parse(localStorage.getItem(STORE_KEY));
-      if (data && Array.isArray(data.decks) && Array.isArray(data.cards)) {
-        data.settings = data.settings || {};
-        return data;
+    for (const key of [STORE_KEY, ...LEGACY_KEYS]) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const data = JSON.parse(raw);
+        if (data && Array.isArray(data.decks) && Array.isArray(data.cards)) return normalize(data);
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
     }
-    return { decks: [], cards: [], settings: {} };
+    return normalize({ decks: [], cards: [] });
+  }
+
+  function takeLegacy() {
+    const removed = [];
+    for (const k of LEGACY_KEYS) {
+      const v = localStorage.getItem(k);
+      if (v !== null) {
+        removed.push([k, v]);
+        localStorage.removeItem(k);
+      }
+    }
+    return removed;
   }
 
   function save() {
+    const json = JSON.stringify(db);
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(db));
+      localStorage.setItem(STORE_KEY, json);
     } catch (e) {
+      // 旧キーのデータが容量を圧迫している場合は、削除して再試行する
+      const legacy = takeLegacy();
+      if (legacy.length) {
+        try {
+          localStorage.setItem(STORE_KEY, json);
+          return;
+        } catch (e2) {
+          for (const [k, v] of legacy) {
+            try {
+              localStorage.setItem(k, v);
+            } catch (e3) {
+              console.error(e3);
+            }
+          }
+        }
+      }
       alert('保存に失敗しました。保存容量が不足している可能性があります。');
+      return;
     }
+    takeLegacy();
   }
 
   function uid() {
@@ -476,6 +692,16 @@
   function todayKey() {
     const d = new Date(dayStart(Date.now()));
     return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  // base（学習日の開始時刻）から見た、時刻 t の学習日の差（日数）
+  function dayIndex(t, base) {
+    return Math.round((dayStart(t) - base) / DAY);
+  }
+
+  function fmtMD(t) {
+    const d = new Date(t);
+    return (d.getMonth() + 1) + '/' + d.getDate();
   }
 
   // ---------- 文字列処理 ----------
@@ -500,9 +726,57 @@
     return esc(s).replace(/\n/g, '<br>');
   }
 
+  function snippetText(t) {
+    const s = String(t).replace(/\s+/g, ' ').trim();
+    return s.length > 80 ? s.slice(0, 80) + '…' : s;
+  }
+
   function snippet(s) {
-    const t = plainText(s).replace(/\s+/g, ' ').trim();
-    return t.length > 80 ? t.slice(0, 80) + '…' : t;
+    return snippetText(plainText(s));
+  }
+
+  // ---------- 穴埋め ----------
+
+  function clozeOrds(text) {
+    const set = new Set();
+    for (const m of String(text).matchAll(CLOZE_RE)) {
+      const n = parseInt(m[1], 10);
+      if (n > 0) set.add(n);
+    }
+    return [...set].sort((a, b) => a - b);
+  }
+
+  function renderCloze(text, ord, reveal) {
+    const src = db.settings.allowHtml ? text : esc(text);
+    const out = src.replace(CLOZE_RE, (m, n, body, hint) => {
+      if (Number(n) !== ord) return body;
+      if (reveal) return '<span class="cloze">' + body + '</span>';
+      return '<span class="cloze">[' + (hint || '...') + ']</span>';
+    });
+    return db.settings.allowHtml ? out : out.replace(/\n/g, '<br>');
+  }
+
+  function clozePlain(text, ord, reveal, forSpeech) {
+    return plainText(text).replace(CLOZE_RE, (m, n, body, hint) => {
+      if (reveal || Number(n) !== ord) return body;
+      if (forSpeech) return hint || '';
+      return '[' + (hint || '...') + ']';
+    });
+  }
+
+  function insertCloze(same) {
+    const ta = $('edit-front');
+    const ords = clozeOrds(ta.value);
+    const max = ords.length ? ords[ords.length - 1] : 0;
+    const n = same ? Math.max(1, max) : max + 1;
+    const s = ta.selectionStart;
+    const e = ta.selectionEnd;
+    const sel = ta.value.slice(s, e);
+    const ins = '{{c' + n + '::' + sel + '}}';
+    ta.value = ta.value.slice(0, s) + ins + ta.value.slice(e);
+    ta.focus();
+    const caret = sel ? s + ins.length : s + ins.length - 2;
+    ta.setSelectionRange(caret, caret);
   }
 
   // ---------- デッキ・カード ----------
@@ -515,10 +789,11 @@
     return { id: uid(), name, newPerDay: 20, revPerDay: 200, created: Date.now() };
   }
 
-  function newCard(deckId, front, back) {
-    return {
+  function newCard(deckId, front, back, extra) {
+    return Object.assign({
       id: uid(),
       deckId,
+      type: 'basic',
       front,
       back,
       state: 'new',
@@ -530,7 +805,50 @@
       lapses: 0,
       order: Date.now() * 1000 + (orderSeq++ % 1000),
       created: Date.now()
-    };
+    }, extra || {});
+  }
+
+  function isCloze(c) {
+    return c.type === 'cloze';
+  }
+
+  // ノートを追加し、作成したカードの枚数を返す
+  function addNote(deckId, type, front, back) {
+    if (type === 'cloze') {
+      const ords = clozeOrds(front);
+      const noteId = uid();
+      for (const ord of ords) {
+        db.cards.push(newCard(deckId, front, back, { type: 'cloze', noteId, ord }));
+      }
+      return ords.length;
+    }
+    db.cards.push(newCard(deckId, front, back));
+    return 1;
+  }
+
+  // 穴埋めノートの内容を更新し、番号の増減に合わせてカードを追加・削除する
+  function updateClozeNote(card, front, back) {
+    const siblings = db.cards.filter((x) => x.noteId === card.noteId);
+    const ords = clozeOrds(front);
+    const removed = siblings.filter((x) => !ords.includes(x.ord));
+    if (removed.length) {
+      const names = removed.map((x) => 'c' + x.ord).join('、');
+      if (!confirm('穴埋め ' + names + ' のカードが削除されます。よろしいですか？')) return false;
+    }
+    const removedIds = new Set(removed.map((x) => x.id));
+    db.cards = db.cards.filter((x) => !removedIds.has(x.id));
+    const existing = new Set(siblings.map((x) => x.ord));
+    for (const x of siblings) {
+      if (removedIds.has(x.id)) continue;
+      x.front = front;
+      x.back = back;
+    }
+    for (const ord of ords) {
+      if (!existing.has(ord)) {
+        db.cards.push(newCard(card.deckId, front, back, { type: 'cloze', noteId: card.noteId, ord }));
+      }
+    }
+    return true;
   }
 
   function deckCounter(deck, key) {
@@ -545,6 +863,7 @@
 
   function deckCounts(deck) {
     const now = Date.now();
+    const learnCutoff = now + LEARN_AHEAD;
     let n = 0;
     let l = 0;
     let r = 0;
@@ -553,7 +872,7 @@
       if (c.state === 'new') n++;
       else if (c.state === 'review') {
         if (c.due <= now) r++;
-      } else if (c.due <= now) l++;
+      } else if (c.due <= learnCutoff) l++;
     }
     const newLeft = Math.max(0, deck.newPerDay - deckCounter(deck, 'newDone').n);
     const revLeft = Math.max(0, deck.revPerDay - deckCounter(deck, 'revDone').n);
@@ -589,6 +908,23 @@
 
   // ---------- スケジューリング ----------
 
+  // Anki v2 スケジューラーと同じファズの範囲
+  function fuzzRange(ivl) {
+    if (ivl < 2) return [ivl, ivl];
+    if (ivl === 2) return [2, 3];
+    let f;
+    if (ivl < 7) f = Math.floor(ivl * 0.25);
+    else if (ivl < 30) f = Math.max(2, Math.floor(ivl * 0.15));
+    else f = Math.max(4, Math.floor(ivl * 0.05));
+    f = Math.max(f, 1);
+    return [ivl - f, ivl + f];
+  }
+
+  function fuzzIvl(ivl) {
+    const [lo, hi] = fuzzRange(ivl);
+    return lo + Math.floor(Math.random() * (hi - lo + 1));
+  }
+
   function graduate(c, ivl, now) {
     c.state = 'review';
     c.step = 0;
@@ -596,9 +932,11 @@
     c.due = dayStart(now) + ivl * DAY;
   }
 
-  function schedule(card, rating, now) {
+  // useFuzz が true のときのみ間隔をランダム化する（ボタン表示用の計算では false）
+  function schedule(card, rating, now, useFuzz) {
     const c = { ...card };
     c.reps = (c.reps || 0) + 1;
+    const fz = (ivl) => (useFuzz ? fuzzIvl(ivl) : ivl);
 
     if (c.state === 'new' || c.state === 'learning') {
       if (c.state === 'new') {
@@ -617,10 +955,10 @@
           c.step += 1;
           c.due = now + LEARN_STEPS[c.step] * MIN;
         } else {
-          graduate(c, 1, now);
+          graduate(c, fz(GRADUATING_IVL), now);
         }
       } else {
-        graduate(c, 4, now);
+        graduate(c, fz(EASY_IVL), now);
       }
       return c;
     }
@@ -655,9 +993,13 @@
       c.due = now + RELEARN_STEPS[0] * MIN;
       return c;
     }
-    const hardIvl = Math.max(ivl + 1, Math.round(ivl * 1.2));
-    const goodIvl = Math.max(hardIvl + 1, Math.round(ivl * c.ease));
-    const easyIvl = Math.max(goodIvl + 1, Math.round(ivl * c.ease * 1.3));
+
+    const delay = Math.max(0, Math.round((dayStart(now) - dayStart(c.due)) / DAY));
+    const constrain = (x, prev) => Math.min(MAX_IVL, Math.max(fz(Math.round(x)), prev + 1, 1));
+    const hardIvl = constrain(ivl * HARD_FACTOR, ivl);
+    const goodIvl = constrain((ivl + Math.floor(delay / 2)) * c.ease, hardIvl);
+    const easyIvl = constrain((ivl + delay) * c.ease * EASY_BONUS, goodIvl);
+
     let newIvl;
     if (rating === 2) {
       newIvl = hardIvl;
@@ -668,9 +1010,11 @@
       newIvl = easyIvl;
       c.ease = c.ease + 0.15;
     }
-    graduate(c, Math.min(36500, newIvl), now);
+    graduate(c, Math.min(MAX_IVL, newIvl), now);
     return c;
   }
+
+  // ---------- 表示用の書式 ----------
 
   function fmtDays(d) {
     if (d < 30) return d + '日';
@@ -685,9 +1029,20 @@
     return (m / 60).toFixed(1) + '時間';
   }
 
+  function fmtDuration(ms) {
+    const m = Math.round(ms / MIN);
+    if (ms > 0 && m < 1) return '1分未満';
+    if (m < 60) return m + '分';
+    return Math.floor(m / 60) + '時間' + (m % 60) + '分';
+  }
+
+  function pct(a, b) {
+    return (a / b * 100).toFixed(1) + '%（' + a + ' / ' + b + '）';
+  }
+
   function intervalLabel(card, rating) {
     const now = Date.now();
-    const s = schedule(card, rating, now);
+    const s = schedule(card, rating, now, false);
     if (s.state === 'review') return fmtDays(s.ivl);
     return fmtMs(s.due - now);
   }
@@ -700,7 +1055,7 @@
 
   // ---------- 画面遷移 ----------
 
-  const VIEWS = ['decks', 'deck', 'edit', 'list', 'import', 'study', 'settings'];
+  const VIEWS = ['decks', 'deck', 'edit', 'list', 'import', 'study', 'stats', 'settings'];
   let currentView = 'decks';
   const stack = [];
 
@@ -711,16 +1066,18 @@
     $('btn-back').style.visibility = view === 'decks' ? 'hidden' : 'visible';
     $('btn-settings').style.visibility = view === 'decks' ? 'visible' : 'hidden';
     const deck = getDeck(currentDeckId);
+    const statsDeck = statsDeckId ? getDeck(statsDeckId) : null;
     const titles = {
-      decks: 'MyAnki',
+      decks: APP_NAME,
       deck: deck ? deck.name : '',
       edit: editingCardId ? 'カード編集' : 'カード追加',
       list: 'カード一覧',
       import: 'インポート',
       study: deck ? deck.name : '',
+      stats: statsDeck ? statsDeck.name + 'の統計' : '統計（全デッキ）',
       settings: '設定'
     };
-    $('title').textContent = titles[view] || 'MyAnki';
+    $('title').textContent = titles[view] || APP_NAME;
     render[view](opts);
     window.scrollTo(0, 0);
   }
@@ -736,12 +1093,31 @@
     list: renderList,
     import: renderImport,
     study: renderStudy,
+    stats: renderStats,
     settings: renderSettings
   };
 
   // ---------- デッキ一覧 ----------
 
+  function backupReminder() {
+    if (!db.cards.length) return '';
+    const last = db.settings.lastBackup;
+    if (!last) {
+      return db.cards.some((c) => c.reps > 0) ? 'まだバックアップを書き出していません。' : '';
+    }
+    const days = Math.floor((Date.now() - last) / DAY);
+    if (days >= BACKUP_REMIND_DAYS) return '最後のバックアップから' + days + '日経過しています。';
+    return '';
+  }
+
+  function renderBackupBanner() {
+    const msg = backupReminder();
+    $('backup-banner').hidden = !msg;
+    $('backup-banner-text').textContent = msg;
+  }
+
   function renderDecks() {
+    renderBackupBanner();
     const ul = $('deck-list');
     if (!db.decks.length) {
       ul.innerHTML = '<li class="empty">デッキがありません。上の欄から作成してください。</li>';
@@ -776,6 +1152,16 @@
     go('deck');
   });
 
+  $('btn-banner-export').addEventListener('click', async () => {
+    await exportBackup();
+    if (currentView === 'decks') renderBackupBanner();
+  });
+
+  $('btn-stats-all').addEventListener('click', () => {
+    statsDeckId = null;
+    go('stats');
+  });
+
   // ---------- デッキ画面 ----------
 
   function renderDeck() {
@@ -798,6 +1184,7 @@
   $('btn-study').addEventListener('click', () => {
     session.undo = null;
     session.card = null;
+    session.resumeShown = false;
     go('study');
   });
 
@@ -812,6 +1199,11 @@
   });
 
   $('btn-import').addEventListener('click', () => go('import'));
+
+  $('btn-deck-stats').addEventListener('click', () => {
+    statsDeckId = currentDeckId;
+    go('stats');
+  });
 
   $('btn-deck-opt').addEventListener('click', () => {
     const d = getDeck(currentDeckId);
@@ -835,8 +1227,9 @@
 
   $('btn-deck-delete').addEventListener('click', () => {
     const d = getDeck(currentDeckId);
-    if (!confirm('デッキ「' + d.name + '」とそのカードをすべて削除します。よろしいですか？')) return;
+    if (!confirm('デッキ「' + d.name + '」とそのカード、学習履歴をすべて削除します。よろしいですか？')) return;
     db.cards = db.cards.filter((c) => c.deckId !== d.id);
+    db.revlog = db.revlog.filter((l) => l.did !== d.id);
     db.decks = db.decks.filter((x) => x.id !== d.id);
     save();
     currentDeckId = null;
@@ -846,36 +1239,69 @@
 
   // ---------- カード追加・編集 ----------
 
+  function updateEditTypeUI() {
+    const cloze = $('edit-type').value === 'cloze';
+    $('edit-front-label').textContent = cloze ? 'テキスト' : '表面';
+    $('edit-back-label').textContent = cloze ? '追加情報（答えの下に表示・省略可）' : '裏面';
+    $('cloze-tools').hidden = !cloze;
+    $('cloze-help').hidden = !cloze;
+  }
+
   function renderEdit() {
     const c = editingCardId ? db.cards.find((x) => x.id === editingCardId) : null;
+    $('edit-type').value = c ? (isCloze(c) ? 'cloze' : 'basic') : (db.settings.lastNoteType || 'basic');
+    $('edit-type').disabled = !!c;
     $('edit-front').value = c ? c.front : '';
     $('edit-back').value = c ? c.back : '';
     $('edit-msg').textContent = '';
     $('btn-save-card').textContent = c ? '保存して戻る' : '追加';
     $('btn-reset-card').hidden = !c;
+    updateEditTypeUI();
   }
 
+  $('edit-type').addEventListener('change', updateEditTypeUI);
+  $('btn-cloze-new').addEventListener('click', () => insertCloze(false));
+  $('btn-cloze-same').addEventListener('click', () => insertCloze(true));
+
+  $('edit-front').addEventListener('keydown', (e) => {
+    if ($('edit-type').value !== 'cloze') return;
+    if (e.code === 'KeyC' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      insertCloze(e.altKey);
+    }
+  });
+
   $('btn-save-card').addEventListener('click', () => {
+    const type = $('edit-type').value;
     const front = $('edit-front').value.trim();
     const backText = $('edit-back').value.trim();
     if (!front) {
-      $('edit-msg').textContent = '表面を入力してください。';
+      $('edit-msg').textContent = type === 'cloze' ? 'テキストを入力してください。' : '表面を入力してください。';
+      return;
+    }
+    if (type === 'cloze' && !clozeOrds(front).length) {
+      $('edit-msg').textContent = '穴埋めがありません。{{c1::答え}} の形式で入力してください。';
       return;
     }
     if (editingCardId) {
       const c = db.cards.find((x) => x.id === editingCardId);
       if (c) {
-        c.front = front;
-        c.back = backText;
+        if (isCloze(c)) {
+          if (!updateClozeNote(c, front, backText)) return;
+        } else {
+          c.front = front;
+          c.back = backText;
+        }
         save();
       }
       back();
     } else {
-      db.cards.push(newCard(currentDeckId, front, backText));
+      const n = addNote(currentDeckId, type, front, backText);
+      db.settings.lastNoteType = type;
       save();
       $('edit-front').value = '';
       $('edit-back').value = '';
-      $('edit-msg').textContent = '追加しました。続けて入力できます。';
+      $('edit-msg').textContent = (n > 1 ? 'カードを' + n + '枚' : '') + '追加しました。続けて入力できます。';
       $('edit-front').focus();
     }
   });
@@ -901,19 +1327,21 @@
       $('card-list').innerHTML = '<li class="empty">カードがありません。</li>';
       return;
     }
-    $('card-list').innerHTML = cards.slice(0, LIST_LIMIT).map((c) =>
-      '<li class="card-item">' +
+    $('card-list').innerHTML = cards.slice(0, LIST_LIMIT).map((c) => {
+      const front = isCloze(c) ? snippetText(clozePlain(c.front, c.ord, false, false)) : snippet(c.front);
+      const label = (isCloze(c) ? '穴埋め c' + c.ord + '　' : '') + statusText(c);
+      return '<li class="card-item">' +
         '<div class="ci-text">' +
-          '<div class="ci-front">' + esc(snippet(c.front)) + '</div>' +
+          '<div class="ci-front">' + esc(front) + '</div>' +
           '<div class="ci-back muted">' + esc(snippet(c.back)) + '</div>' +
-          '<div class="muted">' + esc(statusText(c)) + '</div>' +
+          '<div class="muted">' + esc(label) + '</div>' +
         '</div>' +
         '<div class="ci-actions">' +
           '<button data-act="edit" data-id="' + c.id + '">編集</button>' +
           '<button data-act="del" data-id="' + c.id + '" class="danger">削除</button>' +
         '</div>' +
-      '</li>'
-    ).join('');
+      '</li>';
+    }).join('');
   }
 
   $('list-search').addEventListener('input', renderList);
@@ -922,12 +1350,19 @@
     const b = e.target.closest('button[data-act]');
     if (!b) return;
     const id = b.dataset.id;
+    const c = db.cards.find((x) => x.id === id);
+    if (!c) return;
     if (b.dataset.act === 'edit') {
       editingCardId = id;
       go('edit');
     } else if (b.dataset.act === 'del') {
-      if (!confirm('このカードを削除しますか？')) return;
-      db.cards = db.cards.filter((c) => c.id !== id);
+      const group = isCloze(c) ? db.cards.filter((x) => x.noteId === c.noteId) : [c];
+      const msg = group.length > 1
+        ? 'この穴埋めノートのカード' + group.length + '枚をすべて削除しますか？'
+        : 'このカードを削除しますか？';
+      if (!confirm(msg)) return;
+      const ids = new Set(group.map((x) => x.id));
+      db.cards = db.cards.filter((x) => !ids.has(x.id));
       save();
       renderList();
     }
@@ -990,10 +1425,12 @@
 
   $('btn-do-import').addEventListener('click', () => {
     const sep = { tab: '\t', comma: ',', semicolon: ';' }[$('import-sep').value];
+    const mode = $('import-type').value;
     const rows = parseDelimited($('import-text').value, sep);
     const skipDup = $('import-skipdup').checked;
     const existing = new Set(db.cards.filter((c) => c.deckId === currentDeckId).map((c) => c.front));
-    let added = 0;
+    let notes = 0;
+    let cards = 0;
     let skipped = 0;
     for (const r of rows) {
       if (!r.length) continue;
@@ -1001,27 +1438,32 @@
       if (r[0].startsWith('#')) continue;
       const front = (r[0] || '').trim();
       const backText = (r[1] || '').trim();
-      if (!front || (skipDup && existing.has(front))) {
+      const hasCloze = clozeOrds(front).length > 0;
+      const type = mode === 'auto' ? (hasCloze ? 'cloze' : 'basic') : mode;
+      if (!front || (type === 'cloze' && !hasCloze) || (skipDup && existing.has(front))) {
         skipped++;
         continue;
       }
       existing.add(front);
-      db.cards.push(newCard(currentDeckId, front, backText));
-      added++;
+      cards += addNote(currentDeckId, type, front, backText);
+      notes++;
     }
     save();
-    $('import-msg').textContent = added + '枚を追加しました。' + (skipped ? skipped + '件をスキップしました。' : '');
-    if (added) $('import-text').value = '';
+    $('import-msg').textContent = notes + '件（カード' + cards + '枚）を追加しました。' + (skipped ? skipped + '件をスキップしました。' : '');
+    if (notes) $('import-text').value = '';
   });
 
   // ---------- 学習 ----------
 
   function renderStudy(opts) {
+    const resume = session.resumeShown;
+    session.resumeShown = false;
     if (opts.back && session.card) {
       const c = db.cards.find((x) => x.id === session.card.id);
       if (c) {
         session.card = c;
         showCard();
+        if (resume) reveal();
         return;
       }
     }
@@ -1037,10 +1479,14 @@
     const d = getDeck(currentDeckId);
     if (!d) return;
     const n = deckCounts(d);
+    const c = session.card;
+    let kind = '';
+    if (c) kind = c.state === 'new' ? 'new' : c.state === 'review' ? 'review' : 'learn';
+    const cls = (k) => (k === kind ? ' class="current"' : '');
     $('study-counts').innerHTML =
-      '<div><span class="c-new">' + n.new + '</span>新規</div>' +
-      '<div><span class="c-learn">' + n.learn + '</span>学習中</div>' +
-      '<div><span class="c-rev">' + n.review + '</span>復習</div>';
+      '<div' + cls('new') + '><span class="c-new">' + n.new + '</span>新規</div>' +
+      '<div' + cls('learn') + '><span class="c-learn">' + n.learn + '</span>学習中</div>' +
+      '<div' + cls('review') + '><span class="c-rev">' + n.review + '</span>復習</div>';
   }
 
   function showCard() {
@@ -1070,21 +1516,28 @@
     $('study-controls').hidden = false;
     $('btn-speak').hidden = false;
     $('btn-edit-current').hidden = false;
-    $('study-front').innerHTML = renderField(c.front);
+    $('study-front').innerHTML = isCloze(c) ? renderCloze(c.front, c.ord, false) : renderField(c.front);
     $('study-back-content').innerHTML = renderField(c.back);
     $('study-back').hidden = true;
     $('btn-show').hidden = false;
     $('answer-buttons').hidden = true;
+    session.shownAt = Date.now();
   }
 
   function reveal() {
-    if (!session.card || session.shown) return;
+    const c = session.card;
+    if (!c || session.shown) return;
     session.shown = true;
-    $('study-back').hidden = false;
+    if (isCloze(c)) {
+      $('study-front').innerHTML = renderCloze(c.front, c.ord, true);
+      $('study-back').hidden = !c.back;
+    } else {
+      $('study-back').hidden = false;
+    }
     $('btn-show').hidden = true;
     $('answer-buttons').hidden = false;
     for (const b of $('answer-buttons').querySelectorAll('button')) {
-      b.querySelector('.ivl').textContent = intervalLabel(session.card, Number(b.dataset.r));
+      b.querySelector('.ivl').textContent = intervalLabel(c, Number(b.dataset.r));
     }
   }
 
@@ -1094,14 +1547,26 @@
     const idx = db.cards.findIndex((x) => x.id === c.id);
     if (idx < 0) return;
     const deck = getDeck(c.deckId);
+    const now = Date.now();
+    const log = {
+      t: now,
+      cid: c.id,
+      did: c.deckId,
+      r: rating,
+      k: KIND[c.state] !== undefined ? KIND[c.state] : 1,
+      li: c.ivl || 0,
+      ms: Math.min(MAX_ANSWER_MS, Math.max(0, now - session.shownAt))
+    };
     session.undo = {
       card: { ...db.cards[idx] },
       newDone: { ...deckCounter(deck, 'newDone') },
-      revDone: { ...deckCounter(deck, 'revDone') }
+      revDone: { ...deckCounter(deck, 'revDone') },
+      log
     };
     if (c.state === 'new') deckCounter(deck, 'newDone').n++;
     else if (c.state === 'review') deckCounter(deck, 'revDone').n++;
-    db.cards[idx] = schedule(c, rating, Date.now());
+    db.cards[idx] = schedule(c, rating, now, true);
+    db.revlog.push(log);
     save();
     showNext();
   }
@@ -1117,30 +1582,40 @@
   $('btn-undo').addEventListener('click', () => {
     const u = session.undo;
     if (!u) return;
-    const idx = db.cards.findIndex((x) => x.id === u.card.id);
-    if (idx >= 0) db.cards[idx] = u.card;
+    session.undo = null;
+    const li = db.revlog.lastIndexOf(u.log);
+    if (li >= 0) db.revlog.splice(li, 1);
     const d = getDeck(u.card.deckId);
     if (d) {
       d.newDone = u.newDone;
       d.revDone = u.revDone;
     }
-    session.undo = null;
+    const idx = db.cards.findIndex((x) => x.id === u.card.id);
+    if (idx >= 0) db.cards[idx] = u.card;
     save();
-    session.card = idx >= 0 ? db.cards[idx] : null;
+    session.card = idx >= 0 ? db.cards[idx] : nextCard(currentDeckId);
     showCard();
   });
 
+  function speechText(c, shown) {
+    if (isCloze(c)) {
+      const t = clozePlain(c.front, c.ord, shown, true);
+      return shown && c.back ? t + '\n' + plainText(c.back) : t;
+    }
+    return plainText(shown ? c.back : c.front);
+  }
+
   $('btn-speak').addEventListener('click', () => {
     if (!session.card || !('speechSynthesis' in window)) return;
-    const text = plainText(session.shown ? session.card.back : session.card.front);
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
+    const u = new SpeechSynthesisUtterance(speechText(session.card, session.shown));
     u.lang = db.settings.lang || 'ja-JP';
     speechSynthesis.speak(u);
   });
 
   $('btn-edit-current').addEventListener('click', () => {
     if (!session.card) return;
+    session.resumeShown = session.shown;
     editingCardId = session.card.id;
     go('edit');
   });
@@ -1162,12 +1637,254 @@
     }
   });
 
+  // ---------- 統計 ----------
+
+  function statRows(rows) {
+    return '<table class="stat-table">' + rows.map((r) =>
+      '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td></tr>'
+    ).join('') + '</table>';
+  }
+
+  // items: [ラベル, 色, 値（省略可）]
+  function legend(items) {
+    return '<ul class="legend">' + items.map((it) =>
+      '<li><span class="dot" style="background:' + it[1] + '"></span>' + esc(it[0]) +
+      (it.length > 2 ? '<b>' + esc(it[2]) + '</b>' : '') + '</li>'
+    ).join('') + '</ul>';
+  }
+
+  function labelEvery(days) {
+    if (days <= 7) return 1;
+    if (days <= 30) return 5;
+    return 15;
+  }
+
+  // items: [{ label, tip, parts: [[値, 色], ...] }]（積み上げ棒グラフ）
+  function barChart(items, every) {
+    const sums = items.map((it) => it.parts.reduce((s, p) => s + p[0], 0));
+    const max = Math.max(1, ...sums);
+    const bars = items.map((it) => {
+      const segs = it.parts
+        .filter((p) => p[0] > 0)
+        .map((p) => '<div class="seg" style="height:' + (p[0] / max * 100) + '%;background:' + p[1] + '"></div>')
+        .join('');
+      return '<div class="bar" data-tip="' + esc(it.tip) + '">' + segs + '</div>';
+    }).join('');
+    const labels = items.map((it, i) => '<span>' + (i % every === 0 ? esc(it.label) : '') + '</span>').join('');
+    return '<div class="chart">' +
+      '<div class="chart-max">最大 ' + max + '</div>' +
+      '<div class="bars">' + bars + '</div>' +
+      '<div class="axis">' + labels + '</div>' +
+      '<p class="tip muted">棒をタップすると詳細を表示します。</p>' +
+      '</div>';
+  }
+
+  function streak(logs, base) {
+    const days = new Set(logs.map((l) => dayIndex(l.t, base)));
+    let d = days.has(0) ? 0 : -1;
+    let n = 0;
+    while (days.has(d)) {
+      n++;
+      d--;
+    }
+    return n;
+  }
+
+  function statsToday(logs, base) {
+    const today = logs.filter((l) => l.t >= base);
+    if (!today.length) return '<p class="muted">今日はまだ回答していません。</p>';
+    const ms = today.reduce((s, l) => s + (l.ms || 0), 0);
+    const kinds = [0, 0, 0, 0];
+    for (const l of today) kinds[l.k]++;
+    const again = today.filter((l) => l.r === 1).length;
+    const rev = today.filter((l) => l.k === 2);
+    const revOk = rev.filter((l) => l.r > 1).length;
+    return statRows([
+      ['回答数', today.length + '回'],
+      ['学習時間', fmtDuration(ms)],
+      ['1回あたりの平均', (ms / today.length / 1000).toFixed(1) + '秒'],
+      ['内訳', KIND_LABELS.map((label, k) => label + ' ' + kinds[k]).join(' / ')],
+      ['「もう一度」', again + '回'],
+      ['復習カードの正答率', rev.length ? pct(revOk, rev.length) : '—']
+    ]);
+  }
+
+  function statsCardBreakdown(cards) {
+    if (!cards.length) return '<p class="muted">カードがありません。</p>';
+    let n = 0;
+    let l = 0;
+    let young = 0;
+    let mature = 0;
+    let cloze = 0;
+    let revN = 0;
+    let ivlSum = 0;
+    let easeSum = 0;
+    for (const c of cards) {
+      if (isCloze(c)) cloze++;
+      if (c.state === 'new') n++;
+      else if (isLearning(c)) l++;
+      else if (c.ivl >= MATURE_IVL) mature++;
+      else young++;
+      if (c.state === 'review') {
+        revN++;
+        ivlSum += c.ivl;
+        easeSum += c.ease;
+      }
+    }
+    const total = cards.length;
+    const parts = [
+      ['新規', n, 'var(--easy)'],
+      ['学習中（再学習を含む）', l, 'var(--hard)'],
+      ['復習（若い）', young, 'var(--young)'],
+      ['復習（成熟）', mature, 'var(--mature)']
+    ];
+    const bar = '<div class="hbar">' + parts
+      .filter((p) => p[1] > 0)
+      .map((p) => '<div style="flex:' + p[1] + ';background:' + p[2] + '"></div>')
+      .join('') + '</div>';
+    return bar +
+      legend(parts.map((p) => [p[0], p[2], p[1] + '枚（' + (p[1] / total * 100).toFixed(1) + '%）'])) +
+      statRows([
+        ['総数', total + '枚（うち穴埋め ' + cloze + '枚）'],
+        ['平均間隔（復習カード）', revN ? fmtDays(Math.round(ivlSum / revN)) : '—'],
+        ['平均の易しさ（復習カード）', revN ? Math.round(easeSum / revN * 100) + '%' : '—']
+      ]) +
+      '<p class="muted">若い：間隔' + MATURE_IVL + '日未満、成熟：間隔' + MATURE_IVL + '日以上</p>';
+  }
+
+  function statsForecast(cards, base, days) {
+    const learn = new Array(days).fill(0);
+    const young = new Array(days).fill(0);
+    const mature = new Array(days).fill(0);
+    let overdue = 0;
+    for (const c of cards) {
+      if (c.state === 'new') continue;
+      const raw = dayIndex(c.due, base);
+      if (c.state === 'review' && raw < 0) overdue++;
+      const i = Math.max(0, raw);
+      if (i >= days) continue;
+      if (isLearning(c)) learn[i]++;
+      else if (c.ivl >= MATURE_IVL) mature[i]++;
+      else young[i]++;
+    }
+    const sum = (i) => learn[i] + young[i] + mature[i];
+    let total = 0;
+    for (let i = 0; i < days; i++) total += sum(i);
+    const summary = statRows([
+      ['期間内の合計', total + '枚'],
+      ['1日あたりの平均', (total / days).toFixed(1) + '枚'],
+      ['明日', (days > 1 ? sum(1) : 0) + '枚'],
+      ['期限を過ぎた復習カード', overdue + '枚（今日に含めて表示）']
+    ]);
+    if (!total) return '<p class="muted">この期間に予定されている復習はありません。</p>' + summary;
+    const items = [];
+    for (let i = 0; i < days; i++) {
+      const label = i === 0 ? '今日' : fmtMD(base + i * DAY);
+      items.push({
+        label,
+        tip: label + '：' + sum(i) + '枚（学習中 ' + learn[i] + ' / 若い ' + young[i] + ' / 成熟 ' + mature[i] + '）',
+        parts: [[learn[i], 'var(--hard)'], [young[i], 'var(--young)'], [mature[i], 'var(--mature)']]
+      });
+    }
+    return barChart(items, labelEvery(days)) +
+      legend([['学習中', 'var(--hard)'], ['復習（若い）', 'var(--young)'], ['復習（成熟）', 'var(--mature)']]) +
+      summary +
+      '<p class="muted">1日の復習上限は考慮していません。</p>';
+  }
+
+  function statsHistory(logs, base, days) {
+    const counts = Array.from({ length: days }, () => [0, 0, 0, 0]);
+    const ms = new Array(days).fill(0);
+    let total = 0;
+    let totalMs = 0;
+    for (const l of logs) {
+      const i = dayIndex(l.t, base) + days - 1;
+      if (i < 0 || i >= days) continue;
+      counts[i][l.k]++;
+      ms[i] += l.ms || 0;
+      total++;
+      totalMs += l.ms || 0;
+    }
+    const studied = counts.filter((c) => c[0] + c[1] + c[2] + c[3] > 0).length;
+    const summary = statRows([
+      ['学習した日', studied + '日 / ' + days + '日'],
+      ['回答数の合計', total + '回'],
+      ['1日あたりの平均', (total / days).toFixed(1) + '回'],
+      ['学習時間の合計', fmtDuration(totalMs)],
+      ['連続学習日数', streak(logs, base) + '日']
+    ]);
+    if (!total) return '<p class="muted">この期間の学習履歴はありません。</p>' + summary;
+    const items = counts.map((c, i) => {
+      const label = fmtMD(base - (days - 1 - i) * DAY);
+      const n = c[0] + c[1] + c[2] + c[3];
+      return {
+        label,
+        tip: label + '：' + n + '回（' + KIND_LABELS.map((k, j) => k + ' ' + c[j]).join(' / ') + '）、' + fmtDuration(ms[i]),
+        parts: c.map((v, j) => [v, KIND_COLORS[j]])
+      };
+    });
+    return barChart(items, labelEvery(days)) +
+      legend(KIND_LABELS.map((label, k) => [label, KIND_COLORS[k]])) +
+      summary;
+  }
+
+  function statsRetention(logs, base, days) {
+    const start = base - (days - 1) * DAY;
+    let yT = 0;
+    let yOk = 0;
+    let mT = 0;
+    let mOk = 0;
+    for (const l of logs) {
+      if (l.t < start || l.k !== 2) continue;
+      if (l.li >= MATURE_IVL) {
+        mT++;
+        if (l.r > 1) mOk++;
+      } else {
+        yT++;
+        if (l.r > 1) yOk++;
+      }
+    }
+    if (!yT && !mT) return '<p class="muted">この期間に回答した復習カードはありません。</p>';
+    return statRows([
+      ['若いカード', yT ? pct(yOk, yT) : '—'],
+      ['成熟カード', mT ? pct(mOk, mT) : '—'],
+      ['合計', pct(yOk + mOk, yT + mT)]
+    ]) + '<p class="muted">「もう一度」以外を正答として数えます。</p>';
+  }
+
+  function renderStats() {
+    const base = dayStart(Date.now());
+    const days = Number($('stats-period').value) || 30;
+    const cards = statsDeckId ? db.cards.filter((c) => c.deckId === statsDeckId) : db.cards;
+    const logs = statsDeckId ? db.revlog.filter((l) => l.did === statsDeckId) : db.revlog;
+    $('stats-today').innerHTML = statsToday(logs, base);
+    $('stats-cards').innerHTML = statsCardBreakdown(cards);
+    $('stats-forecast').innerHTML = statsForecast(cards, base, days);
+    $('stats-history').innerHTML = statsHistory(logs, base, days);
+    $('stats-retention').innerHTML = statsRetention(logs, base, days);
+  }
+
+  $('stats-period').addEventListener('change', renderStats);
+
+  $('view-stats').addEventListener('click', (e) => {
+    const bar = e.target.closest('.bar');
+    if (!bar) return;
+    const chart = bar.closest('.chart');
+    for (const b of chart.querySelectorAll('.bar.sel')) b.classList.remove('sel');
+    bar.classList.add('sel');
+    chart.querySelector('.tip').textContent = bar.dataset.tip;
+  });
+
   // ---------- 設定・バックアップ ----------
 
   function renderSettings() {
     $('set-html').checked = !!db.settings.allowHtml;
     $('set-lang').value = db.settings.lang || 'ja-JP';
-    $('storage-info').textContent = 'デッキ ' + db.decks.length + '個、カード ' + db.cards.length + '枚';
+    const last = db.settings.lastBackup;
+    $('backup-info').textContent = last
+      ? '最後の書き出し: ' + new Date(last).toLocaleString('ja-JP')
+      : 'まだ書き出していません。';
+    $('storage-info').textContent = APP_NAME + ' バージョン ' + APP_VERSION + '　デッキ ' + db.decks.length + '個、カード ' + db.cards.length + '枚、学習履歴 ' + db.revlog.length + '件';
     if (navigator.storage && navigator.storage.estimate) {
       navigator.storage.estimate().then((est) => {
         if (est && est.usage !== undefined) {
@@ -1187,27 +1904,39 @@
     save();
   });
 
-  $('btn-export').addEventListener('click', async () => {
+  // 書き出しが完了したら true、キャンセルされたら false を返す
+  async function exportBackup() {
     const d = new Date();
-    const name = 'myanki-backup-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '.json';
+    const name = 'myflashcards-backup-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '.json';
     const json = JSON.stringify(db, null, 2);
     const file = new File([json], name, { type: 'application/json' });
+    let done = false;
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: name });
-        return;
+        done = true;
       } catch (err) {
-        if (err.name === 'AbortError') return;
+        if (err.name === 'AbortError') return false;
       }
     }
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    if (!done) {
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+    db.settings.lastBackup = Date.now();
+    save();
+    return true;
+  }
+
+  $('btn-export').addEventListener('click', async () => {
+    await exportBackup();
+    if (currentView === 'settings') renderSettings();
   });
 
   $('restore-file').addEventListener('change', async (e) => {
@@ -1218,9 +1947,12 @@
       const data = JSON.parse(await f.text());
       if (!data || !Array.isArray(data.decks) || !Array.isArray(data.cards)) throw new Error('形式が正しくありません');
       if (!confirm('デッキ ' + data.decks.length + '個、カード ' + data.cards.length + '枚のデータで置き換えます。よろしいですか？')) return;
-      data.settings = data.settings || {};
+      normalize(data);
+      data.settings.lastBackup = Date.now();
       db = data;
       save();
+      session.card = null;
+      session.undo = null;
       currentDeckId = null;
       stack.length = 0;
       go('decks', { replace: true });
@@ -1239,6 +1971,7 @@
     if (document.visibilityState !== 'visible') return;
     if (currentView === 'decks') renderDecks();
     else if (currentView === 'deck') renderDeck();
+    else if (currentView === 'stats') renderStats();
     else if (currentView === 'study' && !session.card) showNext();
   });
 
@@ -1246,12 +1979,14 @@
     if (!db.settings.initialized) {
       const d = newDeck('サンプル');
       db.decks.push(d);
-      db.cards.push(newCard(d.id, 'apple', 'りんご'));
-      db.cards.push(newCard(d.id, 'library', '図書館'));
-      db.cards.push(newCard(d.id, '日本の首都は？', '東京'));
+      addNote(d.id, 'basic', 'apple', 'りんご');
+      addNote(d.id, 'basic', 'library', '図書館');
+      addNote(d.id, 'cloze', '{{c1::東京}}は日本の{{c2::首都}}です。', '');
       db.settings.initialized = true;
       save();
     }
+    // 旧名のキーから読み込んだ場合は、新しいキーへ移行する
+    if (localStorage.getItem(STORE_KEY) === null) save();
     if (navigator.storage && navigator.storage.persist) {
       navigator.storage.persist().catch(() => {});
     }

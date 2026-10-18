@@ -1,16 +1,29 @@
 // File: sw.js
-const CACHE = 'myanki-v1';
-const ASSETS = ['./', './index.html', './manifest.json'];
+const CACHE = 'myflashcards-v1';
+const OWN_PREFIXES = ['myflashcards-', 'myanki-'];
+const CORE = ['./', './index.html', './manifest.json'];
+const OPTIONAL = ['./apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE).then((cache) =>
+      cache.addAll(CORE).then(() =>
+        Promise.all(OPTIONAL.map((url) => cache.add(url).catch(() => {})))
+      )
+    )
+  );
   self.skipWaiting();
 });
 
+// このアプリ（旧名を含む）の古いキャッシュだけを削除する
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(
+        keys
+          .filter((k) => k !== CACHE && OWN_PREFIXES.some((p) => k.startsWith(p)))
+          .map((k) => caches.delete(k))
+      )
     )
   );
   self.clients.claim();
